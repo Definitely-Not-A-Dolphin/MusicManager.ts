@@ -1,40 +1,32 @@
-const musicPath = "/home/killioiden/Music/";
+const musicPath = Deno.cwd() + "/.local/share/musicmanager/";
 const singlesPath = "/home/killioiden/Music/Singles/";
-const zipsPath = "/home/killioiden/Music/Zips/";
+const zipsPath = musicPath + "zips/";
 const charsToEscape = [" ", "&", "(", ")"];
-
-const map = (str: string, exts: string[]) => exts.map((ext) => str + ext);
 const songOrder = [
-  ...map("Heaven Pierce Her - ULTRAKILL- ", [
-    "INFINITE HYPERDEATH",
-    "CHAOS-ORDER",
-    "DEEP BLUE",
-    "IMPERFECT HATRED",
-    "PANDEMONIUM-WAR",
-    "VIOLENCE",
-    "FRAUD",
-    "ENCORES I",
-  ]),
+  "Heaven Pierce Her - ULTRAKILL- INFINITE HYPERDEATH",
+  "Heaven Pierce Her - ULTRAKILL- CHAOS-ORDER",
+  "Heaven Pierce Her - ULTRAKILL- DEEP BLUE",
+  "Heaven Pierce Her - ULTRAKILL- IMPERFECT HATRED",
+  "Heaven Pierce Her - ULTRAKILL- PANDEMONIUM-WAR",
+  "Heaven Pierce Her - ULTRAKILL- VIOLENCE",
+  "Heaven Pierce Her - ULTRAKILL- FRAUD",
+  "Heaven Pierce Her - ULTRAKILL- ENCORES I",
   "Jorclai - The Metro (ULTRAKILL)",
   "Duv - And Death Held Its Name",
-  ...map("KEYGEN CHURCH - ", [
-    "Oscuro Domine",
-    "Nel Nome Del Codice",
-    "Tenebre Rosso Sangue",
-    "█ ▓",
-    "░ ▒ ▓ █",
-    "░█░█░░█░█░█░",
-  ]),
-  ...map("6884 - ", [
-    "Double Pendulum",
-    "Quintic",
-    "Soundtrack For A Fractal",
-  ]),
+  "KEYGEN CHURCH - Oscuro Domine",
+  "KEYGEN CHURCH - Nel Nome Del Codice",
+  "KEYGEN CHURCH - Tenebre Rosso Sangue",
+  "KEYGEN CHURCH - █ ▓",
+  "KEYGEN CHURCH - ░ ▒ ▓ █",
+  "KEYGEN CHURCH - ░█░█░░█░█░█░",
+  "6884 - Double Pendulum",
+  "6884 - Quintic",
+  "6884 - Soundtrack For A Fractal",
   "Christopher Larkin - Hollow Knight- Gods & Nightmares",
   "Vincent Rubinetti - The Music of 3Blue1Brown",
 ].map((song) => song + ".zip");
 
-function sortAlbums(entries: Deno.DirEntry[]) {
+function sortAlbums(entries: Deno.DirEntry[]): string[] {
   entries = entries.filter((entry) =>
     entry.isFile && entry.name.endsWith(".zip")
   );
@@ -47,10 +39,16 @@ function sortAlbums(entries: Deno.DirEntry[]) {
     else unsortedEntries.push(album);
   }
 
-  return [...sortedEntries, ...unsortedEntries];
+  sortedEntries.push(...unsortedEntries);
+
+  return sortedEntries;
 }
 
-function clear() {
+function test(): void {
+  new Deno.Command("mv", { args: ["README.md", "README.md.md"] }).spawn();
+}
+
+function clear(): void {
   const music = Array.from(Deno.readDirSync(musicPath));
 
   for (const entry of music) {
@@ -60,18 +58,18 @@ function clear() {
   }
 }
 
-async function append() {
-  const tempDir = Deno.makeTempDirSync();
+async function append(): Promise<void> {
+  const tempDir = Deno.makeTempDirSync({ dir: musicPath });
 
-  console.log(`mv ${singlesPath}* ${tempDir}/`);
+  new Deno.Command("mv", { args: [singlesPath + "*", tempDir + "/"] }).spawn();
+  //console.log(`mv ${singlesPath}* ${tempDir}/`);
   await new Promise((r) => setTimeout(r, 1000));
+  new Deno.Command("mv", { args: [tempDir + "/*", singlesPath] }).spawn();
   console.log(`mv ${tempDir}/* ${singlesPath}`);
   await new Promise((r) => setTimeout(r, 1000));
-
-  Deno.removeSync(tempDir);
 }
 
-function unzipAlbums() {
+function unzipAlbums(): void {
   const entries = sortAlbums(Array.from(Deno.readDirSync(zipsPath)));
 
   for (const entry of entries) {
@@ -88,7 +86,8 @@ function unzipAlbums() {
         newPath = newPath.replaceAll(charToEscape, "\\" + charToEscape);
       }
 
-      console.log(`unzip -d ${newDir} ${newPath}; rm ${newPath};`);
+      console.log(`unzip -d ${newDir} ${newPath};`);
+      Deno.remove(newPath);
     } catch (e) {
       console.error(e);
       console.log("echo something went wrong :[");
@@ -100,4 +99,5 @@ if (import.meta.main) {
   if (Deno.args[0] === "unzip") unzipAlbums();
   else if (Deno.args[0] === "append") void append();
   else if (Deno.args[0] === "clear") clear();
+  else if (Deno.args[0] === "test") test();
 }
