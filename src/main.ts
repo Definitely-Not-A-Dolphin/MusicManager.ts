@@ -1,7 +1,9 @@
-const musicPath = Deno.cwd() + "/.local/share/musicmanager/";
-const singlesPath = "/home/killioiden/Music/Singles/";
+import { unzip } from "./utils.ts";
+
+const musicPath = Deno.cwd() + "/music/";
+const unpackedPath = musicPath + "unpacked/";
 const zipsPath = musicPath + "zips/";
-const charsToEscape = [" ", "&", "(", ")"];
+const singlesPath = unpackedPath + "singles/";
 const songOrder = [
   "Heaven Pierce Her - ULTRAKILL- INFINITE HYPERDEATH",
   "Heaven Pierce Her - ULTRAKILL- CHAOS-ORDER",
@@ -39,34 +41,24 @@ function sortAlbums(entries: Deno.DirEntry[]): string[] {
     else unsortedEntries.push(album);
   }
 
-  sortedEntries.push(...unsortedEntries);
-
-  return sortedEntries;
-}
-
-function test(): void {
-  new Deno.Command("mv", { args: ["README.md", "README.md.md"] }).spawn();
+  return [...sortedEntries, ...unsortedEntries];
 }
 
 function clear(): void {
-  const music = Array.from(Deno.readDirSync(musicPath));
+  const music = Array.from(Deno.readDirSync(unpackedPath));
 
   for (const entry of music) {
     if (
-      entry.isDirectory && !(entry.name === "Singles" || entry.name === "Zips")
-    ) Deno.removeSync(musicPath + entry.name, { recursive: true });
+      entry.isDirectory && entry.name !== "singles"
+    ) Deno.removeSync(unpackedPath + entry.name, { recursive: true });
   }
 }
 
-async function append(): Promise<void> {
+function append(): void {
   const tempDir = Deno.makeTempDirSync({ dir: musicPath });
 
-  new Deno.Command("mv", { args: [singlesPath + "*", tempDir + "/"] }).spawn();
-  //console.log(`mv ${singlesPath}* ${tempDir}/`);
-  await new Promise((r) => setTimeout(r, 1000));
-  new Deno.Command("mv", { args: [tempDir + "/*", singlesPath] }).spawn();
-  console.log(`mv ${tempDir}/* ${singlesPath}`);
-  await new Promise((r) => setTimeout(r, 1000));
+  Deno.renameSync(singlesPath, tempDir + "/");
+  Deno.renameSync(tempDir + "/", singlesPath);
 }
 
 function unzipAlbums(): void {
@@ -74,20 +66,11 @@ function unzipAlbums(): void {
 
   for (const entry of entries) {
     const zip = zipsPath + entry;
-    let newDir = musicPath + zip.split("/").at(-1)!.slice(0, -4) + "/";
-    let newPath = newDir + entry;
+    const newDir = unpackedPath + zip.split("/").at(-1)!.slice(0, -4) + "/";
 
     try {
       Deno.mkdirSync(newDir);
-      Deno.copyFileSync(zip, newPath);
-
-      for (const charToEscape of charsToEscape) {
-        newDir = newDir.replaceAll(charToEscape, "\\" + charToEscape);
-        newPath = newPath.replaceAll(charToEscape, "\\" + charToEscape);
-      }
-
-      console.log(`unzip -d ${newDir} ${newPath};`);
-      Deno.remove(newPath);
+      unzip(zip, newDir);
     } catch (e) {
       console.error(e);
       console.log("echo something went wrong :[");
@@ -97,7 +80,6 @@ function unzipAlbums(): void {
 
 if (import.meta.main) {
   if (Deno.args[0] === "unzip") unzipAlbums();
-  else if (Deno.args[0] === "append") void append();
+  else if (Deno.args[0] === "append") append();
   else if (Deno.args[0] === "clear") clear();
-  else if (Deno.args[0] === "test") test();
 }
