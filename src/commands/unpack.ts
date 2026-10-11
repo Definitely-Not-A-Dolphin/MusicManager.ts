@@ -1,24 +1,25 @@
-import * as path from "../paths.ts";
 import { Command } from "../types.ts";
-import { sortAlbums, unzip } from "../utils.ts";
+import * as Utils from "../utils.ts";
 
 export default new Command({
   name: "unpack",
   description: "Unpack all music",
-  execute: function (): void {
-    const entries = sortAlbums(Array.from(Deno.readDirSync(path.zips)));
+  execute: async function (): Promise<void> {
+    const entries = Utils.sortAlbums(Array.from(Deno.readDirSync(Utils.zipsPath)));
 
     for (const entry of entries) {
-      const zip = path.zips + entry;
-      const newDir = path.unpacked + zip.split("/").at(-1)!.slice(0, -4) + "/";
+      const zip = Utils.zipsPath + entry;
+      const newDir = Utils.unpackedPath + zip.split("/").at(-1)!.slice(0, -4) + "/";
 
       try {
         Deno.mkdirSync(newDir);
-        unzip(zip, newDir);
+        Utils.unzipTo(zip, newDir);
       } catch (e) {
         console.error(e);
         console.log("echo something went wrong :[");
       }
+
+      await new Promise((t) => setTimeout(t, 0));
     }
   },
 });
